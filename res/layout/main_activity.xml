@@ -27,6 +27,32 @@
         android:padding="5dp"
         android:textColor="@android:color/background_light" />
 
+    <TextView
+        android:id="@+id/txtAzimuth"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:padding="5dp"
+        android:textColor="@android:color/background_light" />
+
+    <TextView
+        android:id="@+id/txtPitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/txtAzimuth"
+        android:padding="5dp"
+        android:textColor="@android:color/background_light" />
+
+    <TextView
+        android:id="@+id/txtRoll"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/txtPitch"
+        android:padding="5dp"
+        android:textColor="@android:color/background_light" />
+
     <com.zerokol.views.JoystickView
         android:id="@+id/joystickView"
         android:layout_width="200dp"

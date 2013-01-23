@@ -40,6 +40,7 @@ public class JoystickView extends View implements Runnable, SensorEventListener 
 	private int lastAngle = 0;
 	private int lastPower = 0;
 	private float factor = 1f;
+	private  float[] orientation = new float[3];
 
 	public JoystickView(Context context) {
 		super(context);
@@ -198,7 +199,7 @@ public class JoystickView extends View implements Runnable, SensorEventListener 
 	}
 
 	public static interface OnJoystickMoveListener {
-		public void onValueChanged(int angle, int power, int direction);
+		public void onValueChanged(int angle, int power, int direction, float[] orientation);
 	}
 
 	@Override
@@ -207,6 +208,7 @@ public class JoystickView extends View implements Runnable, SensorEventListener 
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
+		orientation = event.values;
 		yPosition = yPosition < 0 ? Math.max(-90, event.values[1]) : Math.min(
 				90, event.values[1]);
 		yPosition = (int) ((yPosition * factor) + centerY);
@@ -240,7 +242,7 @@ public class JoystickView extends View implements Runnable, SensorEventListener 
 			post(new Runnable() {
 				public void run() {
 					onJoystickMoveListener.onValueChanged(getAngle(),
-							getPower(), getDirection());
+							getPower(), getDirection(), orientation);
 				}
 			});
 			try {
