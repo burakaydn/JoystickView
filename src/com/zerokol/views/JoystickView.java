@@ -4,28 +4,30 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.util.AttributeSet;
-import android.view.MotionEvent;
 import android.view.View;
 
-public class JoystickView extends View implements Runnable {
+public class JoystickView extends View implements Runnable, SensorEventListener {
 	// Constants
 	private final double RAD = 57.2957795;
 	public final static long DEFAULT_LOOP_INTERVAL = 100;
 	public final static int FRONT = 3;
-	public final static int FRONT_RIGHT = 4;
-	public final static int RIGHT = 5;
-	public final static int RIGHT_BOTTOM = 6;
+	public final static int FRONT_RIGHT = 2;
+	public final static int LEFT_FRONT = 4;
+	public final static int LEFT = 5;
+	public final static int RIGHT = 1;
+	public final static int RIGHT_BOTTOM = 8;
+	public final static int BOTTOM_LEFT = 6;
 	public final static int BOTTOM = 7;
-	public final static int BOTTOM_LEFT = 8;
-	public final static int LEFT = 1;
-	public final static int LEFT_FRONT = 2;
 	// Variables
 	private OnJoystickMoveListener onJoystickMoveListener; // Listener
 	private Thread thread = new Thread(this);
 	private long loopInterval = DEFAULT_LOOP_INTERVAL;
-	private int xPosition = 0; // Touch x position
-	private int yPosition = 0; // Touch y position
+	private float xPosition = 0; // Touch x position
+	private float yPosition = 0; // Touch y position
 	private double centerX = 0; // Center view x position
 	private double centerY = 0; // Center view y position
 	private Paint mainCircle;
@@ -37,6 +39,7 @@ public class JoystickView extends View implements Runnable {
 	private int buttonRadius;
 	private int lastAngle = 0;
 	private int lastPower = 0;
+	private float factor = 1f;
 
 	public JoystickView(Context context) {
 		super(context);
@@ -62,8 +65,8 @@ public class JoystickView extends View implements Runnable {
 		secondaryCircle.setStyle(Paint.Style.STROKE);
 
 		verticalLine = new Paint();
-		verticalLine.setStrokeWidth(5);
-		verticalLine.setColor(Color.RED);
+		verticalLine.setStrokeWidth(2);
+		verticalLine.setColor(Color.BLACK);
 
 		horizontalLine = new Paint();
 		horizontalLine.setStrokeWidth(2);
@@ -72,26 +75,18 @@ public class JoystickView extends View implements Runnable {
 		button = new Paint(Paint.ANTI_ALIAS_FLAG);
 		button.setColor(Color.RED);
 		button.setStyle(Paint.Style.FILL);
-	}
 
-	@Override
-	protected void onFinishInflate() {
 	}
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		// setting the measured values to resize the view to a certain width and
-		// height
 		int d = Math.min(measure(widthMeasureSpec), measure(heightMeasureSpec));
 
 		setMeasuredDimension(d, d);
 
-		// before measure, get the center of view
-		xPosition = (int) getWidth() / 2;
-		yPosition = (int) getWidth() / 2;
-
 		buttonRadius = (int) (d / 2 * 0.25);
-		joystickRadius = (int) (d / 2 * 0.75);
+		joystickRadius = (int) (d / 2);
+		factor = d / (2f * 90f); // for making equal button origin to joystickRadius when pitch equals to 90 or -90 
 	}
 
 	private int measure(int measureSpec) {
@@ -134,58 +129,21 @@ public class JoystickView extends View implements Runnable {
 				(float) centerX, (float) centerY, horizontalLine);
 
 		// painting the move button
-		canvas.drawCircle(xPosition, yPosition, buttonRadius, button);
-	}
-
-	@Override
-	public boolean onTouchEvent(MotionEvent event) {
-		xPosition = (int) event.getX();
-		yPosition = (int) event.getY();
-		double abs = Math.sqrt((xPosition - centerX) * (xPosition - centerX)
-				+ (yPosition - centerY) * (yPosition - centerY));
-		if (abs > joystickRadius) {
-			xPosition = (int) ((xPosition - centerX) * joystickRadius / abs + centerX);
-			yPosition = (int) ((yPosition - centerY) * joystickRadius / abs + centerY);
-		}
-		invalidate();
-		if (event.getAction() == MotionEvent.ACTION_UP) {
-			xPosition = (int) centerX;
-			yPosition = (int) centerY;
-			thread.interrupt();
-			onJoystickMoveListener.onValueChanged(getAngle(), getPower(),
-					getDirection());
-		}
-		if (onJoystickMoveListener != null
-				&& event.getAction() == MotionEvent.ACTION_DOWN) {
-			if (thread != null && thread.isAlive()) {
-				thread.interrupt();
-			}
-			thread = new Thread(this);
-			thread.start();
-			onJoystickMoveListener.onValueChanged(getAngle(), getPower(),
-					getDirection());
-		}
-		return true;
+		canvas.drawCircle((int) xPosition, (int) yPosition, buttonRadius,
+				button);
 	}
 
 	private int getAngle() {
 		if (xPosition > centerX) {
-			if (yPosition < centerY) {
+			if (yPosition < centerY || yPosition > centerY) {
 				return lastAngle = (int) (Math.atan((yPosition - centerY)
 						/ (xPosition - centerX))
 						* RAD + 90);
-			} else if (yPosition > centerY) {
-				return lastAngle = (int) (Math.atan((yPosition - centerY)
-						/ (xPosition - centerX)) * RAD) + 90;
 			} else {
 				return lastAngle = 90;
 			}
 		} else if (xPosition < centerX) {
-			if (yPosition < centerY) {
-				return lastAngle = (int) (Math.atan((yPosition - centerY)
-						/ (xPosition - centerX))
-						* RAD - 90);
-			} else if (yPosition > centerY) {
+			if (yPosition < centerY || yPosition > centerY) {
 				return lastAngle = (int) (Math.atan((yPosition - centerY)
 						/ (xPosition - centerX)) * RAD) - 90;
 			} else {
@@ -241,6 +199,39 @@ public class JoystickView extends View implements Runnable {
 
 	public static interface OnJoystickMoveListener {
 		public void onValueChanged(int angle, int power, int direction);
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		yPosition = yPosition < 0 ? Math.max(-90, event.values[1]) : Math.min(
+				90, event.values[1]);
+		yPosition = (int) ((yPosition * factor) + centerY);
+
+		xPosition = xPosition < 0 ? Math.max(-90, event.values[2]) : Math.min(
+				90, event.values[2]);
+		xPosition = (int) ((xPosition * factor) + centerX);
+
+		System.out.println("x: " + (xPosition - centerX) + " y: "
+				+ (yPosition - centerY));
+		double abs = Math.sqrt((xPosition - centerX) * (xPosition - centerX)
+				+ (yPosition - centerY) * (yPosition - centerY));
+		if (abs > joystickRadius) {
+			xPosition = (int) ((xPosition - centerX) * joystickRadius / abs + centerX);
+			yPosition = (int) ((yPosition - centerY) * joystickRadius / abs + centerY);
+		}
+
+		if (onJoystickMoveListener != null) {
+			if (thread != null && thread.isAlive()) {
+				thread.interrupt();
+			}
+			thread = new Thread(this);
+			thread.start();
+		}
+		invalidate();
 	}
 
 	@Override
