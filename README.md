@@ -2,4 +2,4 @@
 
 Based on a work at [github.com](http://github.com/zerokol/Joystick) 
 
-I only implemented orientation sensor to view. There may some bugs or math functions error. Any contrubiton apperecated.
+I only implemented orientation sensor to view. There may some bugs or math function errors. Any contribution appreciated.
